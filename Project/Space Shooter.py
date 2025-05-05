@@ -1,26 +1,73 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-import random
-import math
 import time
+import math
+import random
 
-time_1 = time.time()
-
-# Updated camera and window parameters
-c_x, c_y, c_z = 0, 100, 300  # Elevated and pulled back
-camera_pos = (c_x, c_y, c_z)
-fovY = 120  # Field of view for perspective
-p_x,p_y=0,0
-x_r,y_r,z_r = False,False,False
 # Game flags
+x_r,y_r,z_r = False,False,False
 start_game = False
 wlc = True
 over = False
 angle  = 0
+gr_len = 90
 fpview = False
 scaling  = True
 
+#variables
+time_1 = time.time()
+c_x, c_y, c_z = 0,5, 500  # Elevated and pulled back
+camera_pos = (c_x, c_y, c_z)
+fovY = 120  # Field of view for perspective
+p_x,p_y=0,0
+
+def draw_chess_borad():
+    global gr_len
+    for r in range(12):
+        begin_y =gr_len*6 - r*gr_len
+        for j in range(12):
+            begin_x = gr_len*6 - j*gr_len
+            glBegin(GL_QUADS)
+            #selecting alternate color
+
+            glColor3f(0.4, 0.4, 0.95)
+            glVertex3f(begin_x,begin_y,0)
+            glVertex3f(begin_x - gr_len, begin_y, 0)
+            glVertex3f(begin_x - gr_len, begin_y - gr_len, 0)
+            glVertex3f(begin_x, begin_y - gr_len, 0)
+            glEnd()
+
+def game_wall():
+    global gr_len
+    ht = 7
+
+    glBegin(GL_QUADS)
+    glColor3f(1, 1, 1)
+    glVertex3f(-540, -540, 0)
+    glVertex3f(-540,  540, 0)
+    glVertex3f(-540,  540, ht)
+    glVertex3f(-540, -540, ht)
+
+    glColor3f(1, 1, 1)
+    glVertex3f(540, -540, 0)
+    glVertex3f(540,  540, 0)
+    glVertex3f(540,  540, ht)
+    glVertex3f(540, -540, ht)
+
+    glColor3f(1, 1, 1)
+    glVertex3f(-540, -540, 0)
+    glVertex3f( 540, -540, 0)
+    glVertex3f( 540, -540, ht)
+    glVertex3f(-540, -540, ht)
+
+    glColor3f(1, 1, 1)
+    glVertex3f(-540, 540, 0)
+    glVertex3f( 540, 540, 0)
+    glVertex3f( 540, 540, ht)
+    glVertex3f(-540, 540, ht)
+
+    glEnd()
 
 def draw_text(x, y, text, font=GLUT_BITMAP_HELVETICA_18):
     glColor3f(1, 1, 1)
@@ -84,13 +131,17 @@ def game_begin():
 
 def fighter_spaceship():
     global over,p_x,p_y,angle,x_r,y_r,z_r,scaling
-    
+
     glPushMatrix()
-    if scaling: #if use  time function
-        glScalef (1.05, 1.05, 1.05) 
+    glTranslatef(p_x,p_y,5)
+    glRotatef(-90, 1, 0, 0)
+
+    if scaling:
+        glScalef (1.05, 1.05, 1) 
     else:
-        glScalef (.95, .95, .95) 
-    glTranslatef(p_x,p_y,0)
+        glScalef (.95, .95, 1) 
+
+
     if x_r:
         glRotatef(angle, 1, 0, 0)
     elif y_r:
@@ -99,7 +150,7 @@ def fighter_spaceship():
         glRotatef(angle, 0, 0, 1)
 
 
-    glColor3f(1, 0, 0)
+    glColor3f(0, 0, .8)
     glPushMatrix()
     glScalef(1.5, .5, 1) 
     glutSolidCube(60)
@@ -135,18 +186,18 @@ def fighter_spaceship():
     glPopMatrix()
 
 
-
 def keyboardListener(key, x, y):
     global wlc,start_game,over,x_r,y_r,z_r
     global p_x,p_y,angle
     
     if key == b'w' and not over:
-        p_y+=5
+        if p_y>-480:
+            p_y-=5
         
     elif key == b's' and not over:
-        p_y-=5
+        if p_y<480:
+            p_y+=5
     
-            
     elif key == b'x' and not over:
         x_r = True
         angle+=5
@@ -163,12 +214,12 @@ def keyboardListener(key, x, y):
         y_r,x_r = False,False
 
     elif key == b'd' and not over:
-        if p_x<540:
-            p_x+=5
+        if p_x>-500:
+            p_x-=5
     
     elif key == b'a' and not over:
-        if p_x>-540:
-            p_x-=5
+        if p_x<500:
+            p_x+=5
     
     if key == b'g' and wlc:
         wlc = False
@@ -186,14 +237,19 @@ def specialKeyListener(key, x, y):
     global camera_pos
     x, y, z = camera_pos
     if key == GLUT_KEY_LEFT:
-        x -= 5
+        if x>-450:
+            x -= 5
     elif key == GLUT_KEY_RIGHT:
-        x += 5
+        if x<450:
+            x += 5
     elif key == GLUT_KEY_UP:
-        y += 5
+        if y<550:
+            y += 5
     elif key == GLUT_KEY_DOWN:
-        y -= 5
+        if y>5:
+            y -= 5
     camera_pos = (x, y, z)
+    print(camera_pos)
 
 def mouseListener(button, state, x, y):
     """
@@ -203,30 +259,29 @@ def mouseListener(button, state, x, y):
 
 def setupCamera():
     global fpview
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    gluPerspective(fovY, 1280 / 720, 0.1, 2000)
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
+    glMatrixMode(GL_PROJECTION)  
+    glLoadIdentity()  
+    gluPerspective(fovY, 1.25, 0.1, 1500) 
+    glMatrixMode(GL_MODELVIEW) 
+    glLoadIdentity() 
+    global fpview, p_x, p_y, angle
 
     if fpview:
-        # Eye slightly above and behind the front of the ship
-        eye_x = p_x
-        eye_y = p_y + 40  # Elevated view
-        eye_z = 60        # Pull back to reduce zoom effect
-
-        center_x = p_x
-        center_y = p_y + 10
-        center_z = -200   # Look far into the distance
-
-        gluLookAt(eye_x, eye_y, eye_z,
-                  center_x, center_y, center_z,
-                  0, 1, 0)
+        n_x = p_x - math.cos(math.radians(angle)) * 25
+        n_y = p_y - math.sin(math.radians(angle)) * 25
+        n_z = 40
+        x = p_x - math.cos(math.radians(angle)) * 90
+        y = p_y - math.sin(math.radians(angle)) * 90
+        z = 35
+        gluLookAt(n_x, n_y, n_z, 
+                  x, y, z, 
+                  0, 0, 1)
+        
     else:
         x, y, z = camera_pos
-        gluLookAt(x, y, z,
-                  0, 0, 0,
-                  0, 1, 0)
+        gluLookAt(x, y, z,  # Cam pos
+                0, 0, 0,  # Look tar
+                0, 0, 1)  # Upp vector (z_axis)
 
 
 
@@ -242,15 +297,21 @@ def idle():
 def showScreen():
     global start_game,wlc
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glClearColor(.1,.2,.3,.5)	
     glLoadIdentity()
-    glViewport(0, 0, 1280, 720)
+    glViewport(0, 0, 1000, 800)
     setupCamera()
 
    
     if wlc:
         game_begin()
+        
+        
     else:
         fighter_spaceship()
+        draw_chess_borad()
+        game_wall()
+       
 
 
     glutSwapBuffers()
@@ -258,8 +319,8 @@ def showScreen():
 def main():
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
-    glutInitWindowSize(1280, 720)  # Updated window size
-    glutInitWindowPosition(100, 100)
+    glutInitWindowSize(1000, 800)  # Updated window size
+    glutInitWindowPosition(0, 0)
     glutCreateWindow(b"3D Space Shooter")
 
     glEnable(GL_DEPTH_TEST)  # Enable depth for 3D rendering
@@ -270,6 +331,7 @@ def main():
     glutMouseFunc(mouseListener)
     glutIdleFunc(idle)
     
+
     glutMainLoop()
 
 if __name__ == "__main__":
