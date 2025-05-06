@@ -12,14 +12,19 @@ wlc = True
 over = False
 fpview = False
 scaling  = True
+scaling2 = True
 
 #variables
+enim = []
 time_1 = time.time()
+time_2 = time_1
 camera_pos = (0,5, 500 )
 fovY = 120  
 p_x,p_y= 0, 0
 angle  = 0
 gr_len = 90
+enemy = 5
+
 
 def space():
     global gr_len
@@ -37,12 +42,18 @@ def space():
 
 
 def draw_star():
+    global scaling2
     for x in range(-500, 501, 100): 
         for y in range(-500, 501, 100): 
-            glPointSize(2.5)
+            if scaling2:
+                glPointSize(3)
+                glColor3f(1.0, 1.0, 1.0)
+            else:
+                glPointSize(1.5)
+                glColor3f(0, 0, 0)
             glBegin(GL_POINTS)
-            glColor3f(1.0, 1.0, 1.0)
-            glVertex3f(x + 20, y + 40, 2) 
+
+            glVertex3f(x , y , 2) 
             glEnd()
 
 
@@ -106,8 +117,8 @@ def game_begin():
     glPushMatrix()
     glLoadIdentity()
 
-    box_x, box_y = 490, 400
-    box_width, box_height = 300, 70
+    box_x, box_y = 530, 400
+    box_width, box_height = 330, 70
 
     glColor3f(1,1,1) 
     glLineWidth(3)
@@ -124,9 +135,9 @@ def game_begin():
     glEnd()
 
     
-    draw_text(box_x + 80, box_y + 25, "Start Game", GLUT_BITMAP_TIMES_ROMAN_24)
-    draw_text(box_x , box_y - 25, "Welcome to Space Shooter!", GLUT_BITMAP_HELVETICA_18)
-    draw_text(box_x + 85, box_y - 50, "Press 'g' to Start", GLUT_BITMAP_HELVETICA_12)
+    draw_text(box_x + 100, box_y + 25, "Start Game", GLUT_BITMAP_TIMES_ROMAN_24)
+    draw_text(box_x+15 , box_y - 25, "Welcome to Space Shooter!", GLUT_BITMAP_HELVETICA_18)
+    draw_text(box_x + 105, box_y - 50, "Press 'g' to Start", GLUT_BITMAP_HELVETICA_12)
 
     glPopMatrix()
     glMatrixMode(GL_PROJECTION)
@@ -182,8 +193,42 @@ def fighter_spaceship():
     glPopMatrix()
 
 
+def draw_enemy(e):
+    global scaling
+    x,y = e[0],e[1]
+    glPushMatrix()
+    glTranslatef(x, y, 0)
+    
+    if scaling: 
+        glScalef (1, 1, 1) 
+    else:
+        glScalef (.8, .8, .8) 
+
+    glColor3f(.7, .6, .6)
+    glTranslatef(0, 0, 0)
+    glutSolidCube(40)
+    
+    glColor3f(0.4,0,0.5)
+    glTranslatef(0, 0, 0)
+    glRotatef(-90, 1, 0, 0)
+    gluCylinder(gluNewQuadric(), 10, 2, 40, 10, 10)
+    glPopMatrix()
+
+def pos_maker():
+    global gr_len,enemy
+    min = int(12*gr_len/2) #to check if pos crosses boundary
+    while True:
+        x,y = random.randint(-(min-55),(min-55)),-500
+        if abs(x) > 150 or abs(y) > 150: 
+            break
+    return [x,y,0]
+
+#assigning x and y pos of enemies
+for i in range(enemy):
+    enim.append(pos_maker())
+
 def keyboardListener(key, x, y):
-    global wlc,start_game,over,x_r,y_r,z_r
+    global wlc,start_game,over,x_r,y_r,z_r,fpview
     global p_x,p_y,angle
     
     if key == b'w' and not over:
@@ -222,7 +267,6 @@ def keyboardListener(key, x, y):
         start_game = True
 
     elif key == b'f':
-        global fpview
         fpview = not fpview
 
 
@@ -249,7 +293,7 @@ def mouseListener(button, state, x, y):
 
 
 def setupCamera():
-    global fpview, p_x, p_y, angle
+    global fpview, p_x, p_y
 
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -258,18 +302,20 @@ def setupCamera():
     glLoadIdentity()
 
     if fpview:
-        n_x = p_x
-        n_y = p_y - 40   # behind
-        n_z = 50        # above
-        x = p_x
-        y = p_y + 90
-        z = 50         # downward a bit
+       
+        cam_x = p_x
+        cam_y = p_y + 20   
+        cam_z = 70     
 
-        gluLookAt(n_x, n_y, n_z, 
-                x, -y, z, 
-                0, 0, 1)
-        
-    
+       
+        look_x = p_x
+        look_y = p_y
+        look_z = 40
+
+        gluLookAt(cam_x, cam_y, cam_z,
+                  look_x, look_y, look_z,
+                  0, 0, 1)  
+
     else:
         x, y, z = camera_pos
         gluLookAt(x, y, z, 
@@ -278,16 +324,24 @@ def setupCamera():
 
 
 def idle():
-    global scaling, time_1
+    global scaling,scaling2, time_1, time_2
     ftime = time.time()
+    
 
     if ftime - time_1 >= .7:
         scaling = not scaling
         time_1 = ftime
+    
+    if ftime - time_2 >= .4:
+        scaling2 = not scaling2
+        time_2 = ftime
+
+    
     glutPostRedisplay()
 
 def showScreen():
-    global start_game,wlc
+    global start_game,wlc,over
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glClearColor(.1,.2,.3,.5)	
     glLoadIdentity()
@@ -302,6 +356,17 @@ def showScreen():
         space_boarder()
         draw_star()
         fighter_spaceship()
+        for i in enim:
+            draw_enemy(i)
+        if not over:
+            draw_text(1110, 690, f"Life Remainig: jibon",GLUT_BITMAP_HELVETICA_12)
+            draw_text(10, 690, f"Match Score : murder ",GLUT_BITMAP_HELVETICA_12)
+            draw_text(10, 670, f"Fire Missed : {0} ",GLUT_BITMAP_HELVETICA_12)
+        else:
+            draw_text(450, 690, f"Game is Over. Score is murder.",GLUT_BITMAP_TIMES_ROMAN_24)
+            draw_text(480, 660, f'Press <r> to RESTART',GLUT_BITMAP_TIMES_ROMAN_24)
+
+
        
     glutSwapBuffers()
 
