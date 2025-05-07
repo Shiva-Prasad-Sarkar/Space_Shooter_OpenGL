@@ -13,18 +13,29 @@ over = False
 fpview = False
 scaling  = True
 scaling2 = True
+sheild = False
+
+#arrays
+enim = []
+bullets = []
+
 
 #variables
-enim = []
 time_1 = time.time()
 time_2 = time_1
-camera_pos = (0,5, 500 )
+sheild_on = 0 
+
+camera_pos = (0,5, 500)
 fovY = 120  
 p_x,p_y= 0, 0
 angle  = 0
 gr_len = 90
-enemy = 5
+enemy = 8
 
+#game variables
+life_r = 10
+bullet_r = 40
+score = 0
 
 def space():
     global gr_len
@@ -146,12 +157,12 @@ def game_begin():
 
 
 def fighter_spaceship():
-    global over,p_x,p_y,angle,x_r,y_r,z_r,scaling
+    global over,p_x,p_y,angle,x_r,y_r,z_r,scaling,sheild
 
     glPushMatrix()
-    glTranslatef(p_x,p_y,30)
-    glRotatef(-90, 1, 0, 0)
-
+    glTranslatef(p_x, p_y, 0)
+    
+    
     if scaling:
         glScalef (.9, .9, 1) 
     else:
@@ -159,38 +170,50 @@ def fighter_spaceship():
 
     if x_r:
         glRotatef(angle, 1, 0, 0)
-    elif y_r:
+    elif z_r:
         glRotatef(angle, 0, 1, 0)
     else:
         glRotatef(angle, 0, 0, 1)
 
+    if sheild:
+        gluSphere(gluNewQuadric(), 100, 21, 21)
 
+    # Ship body
     glPushMatrix()
     glColor3f(1, .4, .4)
-    glScalef(1.5, .6, 1) 
-    glutSolidCube(60)
-    glPopMatrix()
-    
-    glPushMatrix()
-    glColor3f(.7, .8, .8)
-    glTranslatef(0, 0, -90)  
-    gluCylinder(gluNewQuadric(), 3, 20, 60, 10, 10)
+    glScalef (1, 1, .5)
+    glutSolidCube(70)
     glPopMatrix()
 
     glPushMatrix()
-    glColor3f(2, 1, 0)
-    glTranslatef(-55, 0, 0)
-    gluCylinder(gluNewQuadric(), 10, 15, 60, 10, 10)
+    glColor3f(0, 0, 0)
+    glScalef (1, 1.6, .5)
+    glutSolidCube(30)
     glPopMatrix()
 
     glPushMatrix()
+    glTranslatef(0, -95, 5)
+    glRotatef(-90, 1, 0, 0)
+    glColor3f(0.7, 0.8, 0.8)
+    gluCylinder(gluNewQuadric(), 3, 13, 60, 10, 10)
+    glPopMatrix()
+
+    glPushMatrix()
+    glTranslatef(-45, 5, 5)
+    glRotatef(-90, 1, 0, 0)
     glColor3f(1, 1, 0)
-    glTranslatef(55, 0, 0)
     gluCylinder(gluNewQuadric(), 10, 15, 60, 10, 10)
     glPopMatrix()
-    
+
+    glPushMatrix()
+    glTranslatef(45, 5, 5)
+    glRotatef(-90, 1, 0, 0)
+    glColor3f(1, 1, 0)
+    gluCylinder(gluNewQuadric(), 10, 15, 60, 10, 10)
+    glPopMatrix()
 
     glPopMatrix()
+
 
 
 def draw_enemy(e):
@@ -221,15 +244,105 @@ def pos_maker():
         x,y = random.randint(-(min-55),(min-55)),-500
         if abs(x) > 150 or abs(y) > 150: 
             break
-    return [x,y,0]
+    return [x,y,0,2]
 
 #assigning x and y pos of enemies
 for i in range(enemy):
     enim.append(pos_maker())
 
+def draw_bullets():
+    glColor3f(1, 0, 0)
+    for bullet in bullets:
+        glPushMatrix()
+        glTranslatef(bullet[0], bullet[1], bullet[2])
+        glutSolidCube(12)
+        glPopMatrix()
+
+def shottt():
+    global bullets, bullet_r,over,life_r,sheild
+    for t in bullets:
+        t[0] += t[3] * 6
+        t[1] += t[4] * 6
+    if sheild:
+        pos = 100
+    else:
+        pos = 540
+    l = 0
+    while l < len(bullets):
+        pos_x, pos_y = bullets[l][0], bullets[l][1]
+        if abs(pos_x) >= pos or abs(pos_y) >= pos:
+            bullets.pop(l)
+            bullet_r-=1   
+        else:
+            l += 1
+
+    if bullet_r < 1 or life_r == 0:
+        over = True
+        enim.clear()
+
+
+def ship_crash():
+    global bullets, over, p_y, p_x, score, life_r, bullet_r,sheild
+    for y in enim:
+        dx = p_x - y[0]
+        dy = p_y - y[1]
+        distance = math.sqrt(dx**2 + dy**2)
+
+        if distance > 1:
+            y[1] += (dy / distance) * 0.1
+
+    if not over:
+        for y in enim:
+            if abs(p_x - y[0]) < 100 and abs(p_y - y[1]) < 100 :
+                if life_r > 0 :
+                    if  sheild==False:
+                        life_r -= 1
+                    enim.remove(y)
+                    enim.append(pos_maker())
+                else:
+                    over = True
+                    enim.clear()
+                break
+
+
+def kill_alliens():
+    global bullets, score, enim, life_r, over
+
+    a = [] #bullets_to_be_removed
+    b = [] #updated enemies
+
+    for y in enim:
+        fired = False
+        for t in bullets:
+            bx, by = t[0], t[1]
+            ex, ey = y[0], y[1]
+
+            if abs(bx - ex) < 30 and abs(by - ey) < 30 :
+                
+                if y[3]==0:
+                    fired = True
+                    score += 1
+                    a.append(t)
+                    break
+                else:
+                    y[3]-=1
+                    a.append(t)
+
+        if fired==True:
+            b.append(pos_maker())
+        else:
+            b.append(y)
+
+    for e in a:
+        if e in bullets:
+            bullets.remove(e)
+
+    enim[:] = b
+
+
 def keyboardListener(key, x, y):
-    global wlc,start_game,over,x_r,y_r,z_r,fpview
-    global p_x,p_y,angle
+    global wlc,start_game,over,x_r,y_r,z_r,fpview,sheild
+    global p_x,p_y,angle,score,bullet_r,life_r,enemy,sheild_on
     
     if key == b'w' and not over:
         if p_y>-480:
@@ -268,6 +381,42 @@ def keyboardListener(key, x, y):
 
     elif key == b'f':
         fpview = not fpview
+        print('First Person View Is On')
+
+    elif key == b' ':
+        if not sheild:  
+            sheild_on = time.time()
+            score -= 3
+        sheild = True
+        print('Sheild Is On')
+
+    if key == b'l' and not over:
+        if bullet_r<20:
+            score -= 5
+            bullet_r = 20
+        else:
+            print('Bullet is Already Loaded')
+    
+    if key == b'r':#and over: #restart
+        bullets.clear()
+        enim.clear()
+        for l in range(enemy):
+            e = pos_maker()
+            enim.append(e)
+            
+        score = 0
+        bullet_r = 40
+        life_r = 10
+        over = False
+        sheild = False
+        p_x,p_y = 0, 0
+        angle = 0
+        print("Game restarted!")
+            
+        glutPostRedisplay()
+
+
+    
 
 
 def specialKeyListener(key, x, y):
@@ -286,10 +435,22 @@ def specialKeyListener(key, x, y):
         if y>5:
             y -= 5
     camera_pos = (x, y, z)
-    
 
 def mouseListener(button, state, x, y):
-    pass  # To be implemented
+    global p_x, p_y, angle, bullets, over
+    if button == GLUT_LEFT_BUTTON and state == GLUT_DOWN and not over:
+        
+        rad = math.radians(angle)
+        dir_x = math.sin(rad)
+        dir_y = -math.cos(rad)
+        cannon_offset = 90  
+        bx = p_x + cannon_offset * dir_x
+        by = p_y + cannon_offset * dir_y
+        bz = 10 
+
+        bullets.append([bx, by, bz, dir_x, dir_y, 0])
+
+    glutPostRedisplay()
 
 
 def setupCamera():
@@ -324,7 +485,10 @@ def setupCamera():
 
 
 def idle():
-    global scaling,scaling2, time_1, time_2
+    shottt()
+    ship_crash()
+    kill_alliens()
+    global scaling,scaling2, time_1, time_2, sheild,sheild_on
     ftime = time.time()
     
 
@@ -336,11 +500,13 @@ def idle():
         scaling2 = not scaling2
         time_2 = ftime
 
-    
+    if sheild and (time.time() - sheild_on >= 7):
+        sheild = False
+
     glutPostRedisplay()
 
 def showScreen():
-    global start_game,wlc,over
+    global start_game,wlc,over,life_r,bullet_r,score
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glClearColor(.1,.2,.3,.5)	
@@ -356,14 +522,15 @@ def showScreen():
         space_boarder()
         draw_star()
         fighter_spaceship()
+        draw_bullets()
         for i in enim:
             draw_enemy(i)
         if not over:
-            draw_text(1110, 690, f"Life Remainig: jibon",GLUT_BITMAP_HELVETICA_12)
-            draw_text(10, 690, f"Match Score : murder ",GLUT_BITMAP_HELVETICA_12)
-            draw_text(10, 670, f"Fire Missed : {0} ",GLUT_BITMAP_HELVETICA_12)
+            draw_text(10, 690, f"Life Remainig: {life_r*'[]'}",GLUT_BITMAP_HELVETICA_12)
+            draw_text(1110, 690, f"Match Score : {score} ",GLUT_BITMAP_HELVETICA_12)
+            draw_text(10, 670, f"Bullet Remainig : {bullet_r} ",GLUT_BITMAP_HELVETICA_12)
         else:
-            draw_text(450, 690, f"Game is Over. Score is murder.",GLUT_BITMAP_TIMES_ROMAN_24)
+            draw_text(450, 690, f"Game is Over. Score is {score}.",GLUT_BITMAP_TIMES_ROMAN_24)
             draw_text(480, 660, f'Press <r> to RESTART',GLUT_BITMAP_TIMES_ROMAN_24)
 
 
