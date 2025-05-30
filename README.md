@@ -1,5 +1,8 @@
 # 3D Space Shooter
 
+**GamePlay**
+**`https://youtu.be/vgER14iH06I?si=oGVXR6EZqdvhbzqT`**
+
 **Overview**  
 3D Space Shooter is an arcade-style game where you control a fighter spaceship in a 3D space environment. Dodge enemy fire, shoot down alien ships, and collect bonus power-ups while your score climbs. This game is built in Python using OpenGL and GLUT, featuring dynamic backgrounds, moving stars, and engaging gameplay mechanics that blend action with strategy.
 
